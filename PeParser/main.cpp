@@ -9,16 +9,24 @@ using namespace std;
 
 int main()
 {
-	PeParser pe((char*)"C:\\Users\\97905\\Desktop\\AsmHighlight.dll");
+	PeParser pe((char*)"C:\\Users\\97905\\Desktop\\CrackMe.exe");
 	
-	// 显示导出函数
-	for (int i = 0; i < pe.lengthOfExpoterMemberArr; i++) {
-		cout << pe.pExpoterMemberArr[i].index << " "
-			<< pe.pExpoterMemberArr[i].funcName << " "
-			<< pe.pExpoterMemberArr[i].funcAddr << endl;
+	cout << "导入函数表共有:" << pe.importerTotalTable.numberOfImporterTable << "个" << endl;
+	
+	for (int i = 0; i < pe.importerTotalTable.numberOfImporterTable; i++) {
+		cout << "*****************************" << endl;
+		cout << "模块名字:" << pe.importerTotalTable.importerTableArr[i].tableName << "  "
+			<< "导入函数共有:" << pe.importerTotalTable.importerTableArr[i].numberOfFunc << "个" << endl;
+		for (int j = 0; j < pe.importerTotalTable.importerTableArr[i].numberOfFunc; j++) {
+			if (pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].recordType == 0) { // 名称导出
+				cout << ">>函数名字:" << pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].importFuncName << endl;;
+			}
+			else { // 序号导出
+				cout << ">>函数序号:" << pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].importFuncIndex << endl;
+			}
+		}
 	}
-	// 写入文件
-	//pe.SaveFile((const char*)"C:\\Users\\97905\\Desktop\\CrackMeNew.exe");
+	
 	return 0;
 
 }

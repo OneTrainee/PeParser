@@ -1,6 +1,38 @@
 #pragma once
 #include <Windows.h>
 
+typedef struct _IMPORTER_MEMBER
+{
+/*
+@名: 导入表成员
+@作用: 每个导入函数的具体属性
+*/
+	DWORD recordType; // 记录类型  [0:函数名称|1:索引]
+	char* importFuncName; // 导入函数名称
+	DWORD importFuncIndex; // 导入函数索引
+}IMPORTER_MEMBER, * PIMPORTER_MEMBER;
+
+typedef struct _IMPORTER_TABLE {
+/*
+@名：导入表
+@作用：初始化每个结构的导入表
+*/
+	char* tableName; // 表名
+	DWORD numberOfFunc; // 导入函数个数
+	PIMPORTER_MEMBER pImporterMemberArr; // 导入函数成员数组
+}IMPORTER_TABLE, * PIMPORTER_TABLE;
+
+typedef struct _IMPORTER_TOTAL_TABLE
+{
+/*
+@名：导入表总表
+@作用：记录该文件一共有多少个导入表和各个导入表的表明
+*/
+	PIMPORTER_TABLE importerTableArr; // 导入表数组,大小[0,numberOfImporterTable)
+	DWORD numberOfImporterTable; // 导入表的数量
+}IMPORTER_TOTAL_TABLE,*PIMPORTER_TOTAL_TABLE;
+
+
 typedef struct _EXPOTER_MEMBER {
 /*
 @
@@ -34,6 +66,7 @@ public:
 
 	// 表操作
 	BOOL initExportTable(); // 初始化导出表
+	BOOL initImportTable(); // 初始化导入表
 
 	// “节”的操作
 	BOOL ExtendLastSection(DWORD extendedByteLength); // 扩大最后一个节
@@ -54,6 +87,7 @@ public:
 	PIMAGE_OPTIONAL_HEADER pOptionalHeader; // PE可选头
 	PIMAGE_SECTION_HEADER pSectionHeaders[20]; // PE节区头(最大为20个）
 	PEXPOTER_MEMBER pExpoterMemberArr; // 导出表成员数组
+	IMPORTER_TOTAL_TABLE importerTotalTable; // 导入总表(这个肯定存在，因此不需要用指针)
 	DWORD lengthOfExpoterMemberArr; // 导出表成员数组的长度
 	BOOL alignSign; // 若文件偏移与内存偏移相等则为True
 	int errorCode; // 错误码
@@ -66,6 +100,9 @@ public:
 	@5:FoaToRva计算失败
 	@6:PE重新构建失败
 	*/
+
+
+
 private:
 	char * fileBuffer; // PE文件缓存到内存中的地址
 	DWORD fileSize; // 文件大小

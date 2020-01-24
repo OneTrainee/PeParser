@@ -22,3 +22,42 @@ void Test_HookEntryPoint() {
 	pe.SaveFile((const char*)"C:\\Users\\97905\\Desktop\\CrackMeNew.exe");
 	return ;
 }
+
+void Test_InitExportTable() {
+/*
+@函数作用：测试初始化导出表
+*/
+	PeParser pe((char*)"C:\\Users\\97905\\Desktop\\AsmHighlight.dll");
+
+	// 显示导出函数
+
+	for (int i = 0; i < pe.lengthOfExpoterMemberArr; i++) {
+		cout << pe.pExpoterMemberArr[i].index << " "
+			<< pe.pExpoterMemberArr[i].funcName << " "
+			<< pe.pExpoterMemberArr[i].funcAddr << endl;
+	}
+
+}
+
+void Test_InitImportTable() {
+/*
+@函数作用：测试导入表是否导入成功。
+*/
+	PeParser pe((char*)"C:\\Users\\97905\\Desktop\\CrackMe.exe");
+
+	cout << "导入函数表共有:" << pe.importerTotalTable.numberOfImporterTable << "个" << endl;
+
+	for (int i = 0; i < pe.importerTotalTable.numberOfImporterTable; i++) {
+		cout << "*****************************" << endl;
+		cout << "模块名字:" << pe.importerTotalTable.importerTableArr[i].tableName << "  "
+			<< "导入函数共有:" << pe.importerTotalTable.importerTableArr[i].numberOfFunc << "个" << endl;
+		for (int j = 0; j < pe.importerTotalTable.importerTableArr[i].numberOfFunc; j++) {
+			if (pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].recordType == 0) { // 名称导出
+				cout << ">>函数名字:" << pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].importFuncName << endl;;
+			}
+			else { // 序号导出
+				cout << ">>函数序号:" << pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].importFuncIndex << endl;
+			}
+		}
+	}
+}

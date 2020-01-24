@@ -103,11 +103,12 @@ PeParser::PeParser(const char* filePath) {
 
 	/******************************************
 	*
-	*           初始化导出表
+	*           初始化导出表、导入表
 	*
 	*******************************************/
 
 	this->initExportTable();
+	this->initImportTable();
 }
 
 DWORD PeParser::RvaToFoa(DWORD rvaValue) {
@@ -466,6 +467,86 @@ BOOL PeParser::initExportTable() {
 		this->pExpoterMemberArr[index].funcName = (char*)this->fileBuffer + this->RvaToFoa(funcNameAddr[i]); // 获取在内存中的名字 
 	}
 
+	return TRUE;
+
+}
+
+BOOL PeParser::initImportTable() {
+/*
+@函数作用：初始化PE导入表
+@注释：
+	** 实现导出表步骤 **
+	#1 先判断导入表个数
+	#2 为导入表申请内存，赋值数组
+	#3  
+	#4 对每个导出表进行处理
+		#5 判断导出表个数
+		#6 开辟内存，赋值数组
+		#7 判断每个函数类型（序号||函数地址）
+	*********************
+@注意事项：HINT这里直接跳过，如果需要可以自行修改加上
+*/
+	
+	// #1 先判断导入表个数
+	if (this->pOptionalHeader->DataDirectory[1].VirtualAddress == 0) { // 判断是否存在导入表
+		this->lengthOfExpoterMemberArr = 0;
+		return TRUE;
+	}
+	char* tempMemory = (char*)malloc(sizeof(IMAGE_IMPORT_DESCRIPTOR)); // 申请中间内存，之后释放出来
+	if (tempMemory == NULL) {
+		errorCode = 2;
+		exit(0);
+	}
+	memset(tempMemory, 0, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+	char* p = this->fileBuffer + this->RvaToFoa(this->pOptionalHeader->DataDirectory[1].VirtualAddress); // 得到导出表在内存地址的偏移
+	this->importerTotalTable.numberOfImporterTable = 0;
+	while (memcmp(tempMemory, p, sizeof(IMAGE_IMPORT_DESCRIPTOR)) != 0 ){
+		this->importerTotalTable.numberOfImporterTable++; // 导入表个数增加1
+		p += sizeof(IMAGE_IMPORT_DESCRIPTOR);
+	}
+	
+	// #2 为导入表申请内存，赋值数组
+	this->importerTotalTable.importerTableArr = (PIMPORTER_TABLE)malloc(sizeof(IMPORTER_TABLE) * this->importerTotalTable.numberOfImporterTable); 
+
+	// #3 释放原先内存，给导入表依次赋值名字
+	free(tempMemory);
+	PIMAGE_IMPORT_DESCRIPTOR t = (PIMAGE_IMPORT_DESCRIPTOR)((char*)this->fileBuffer + this->RvaToFoa(this->pOptionalHeader->DataDirectory[1].VirtualAddress));
+	for (int i = 0; i < this->importerTotalTable.numberOfImporterTable; i++) {
+		this->importerTotalTable.importerTableArr[i].tableName = (char*)this->fileBuffer + this->RvaToFoa(t->Name); // 名字赋值
+		t++;
+	}
+
+	// #4 对每个导出表进行处理
+	t = (PIMAGE_IMPORT_DESCRIPTOR)((char*)this->fileBuffer + this->RvaToFoa(this->pOptionalHeader->DataDirectory[1].VirtualAddress)); // 第一个导入表
+	for (int i = 0; i < this->importerTotalTable.numberOfImporterTable; i++) {
+		PDWORD32 pIntTable = (PDWORD32)((char*)this->fileBuffer + this->RvaToFoa(t->OriginalFirstThunk)); // 获取INT表
+		this->importerTotalTable.importerTableArr[i].numberOfFunc = 0; // 初始化每个导入表的函数个数
+
+		// #5 判断导出表个数
+		this->importerTotalTable.importerTableArr[i].numberOfFunc = 0;
+		while (*pIntTable != 0) {
+			this->importerTotalTable.importerTableArr[i].numberOfFunc++;
+			pIntTable++;
+		}
+
+		// #6 开辟内存，赋值数组
+		this->importerTotalTable.importerTableArr[i].pImporterMemberArr = (PIMPORTER_MEMBER)malloc(sizeof(IMPORTER_MEMBER)* this->importerTotalTable.importerTableArr[i].numberOfFunc);
+
+		// #7 判断每个函数类型（序号||函数地址）
+		pIntTable = (PDWORD32)((char*)this->fileBuffer + this->RvaToFoa(t->OriginalFirstThunk));
+		for (int j = 0; j < this->importerTotalTable.importerTableArr[i].numberOfFunc; j++) {
+			if(*(pIntTable + j) & 0x80000000) { // 如果是导出序号序号
+				this->importerTotalTable.importerTableArr[i].pImporterMemberArr[j].recordType = 1; // 表示类型为导出序号
+				this->importerTotalTable.importerTableArr[i].pImporterMemberArr[j].importFuncIndex = *(pIntTable + j) & 0x7fffffff; // 做高位清零为获取的序号
+			}
+			else { // 如果是函数地址
+				this->importerTotalTable.importerTableArr[i].pImporterMemberArr[j].recordType = 0; // 表示类型为函数导出名字
+				// PIMAGE_IMPORT_BY_NAME + 2 直接跳过 HINT，获取名字，这很好理解 
+				this->importerTotalTable.importerTableArr[i].pImporterMemberArr[j].importFuncName = (char*)this->fileBuffer + this->RvaToFoa(*(pIntTable + j)) + 2; 
+			}
+		}
+		t++;// 下一个导入表
+	}
 	return TRUE;
 
 }
