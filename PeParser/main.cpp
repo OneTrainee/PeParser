@@ -9,24 +9,16 @@ using namespace std;
 
 int main()
 {
-	PeParser pe((char*)"C:\\Users\\97905\\Desktop\\CrackMe.exe");
-	
-	cout << "导入函数表共有:" << pe.importerTotalTable.numberOfImporterTable << "个" << endl;
-	
-	for (int i = 0; i < pe.importerTotalTable.numberOfImporterTable; i++) {
-		cout << "*****************************" << endl;
-		cout << "模块名字:" << pe.importerTotalTable.importerTableArr[i].tableName << "  "
-			<< "导入函数共有:" << pe.importerTotalTable.importerTableArr[i].numberOfFunc << "个" << endl;
-		for (int j = 0; j < pe.importerTotalTable.importerTableArr[i].numberOfFunc; j++) {
-			if (pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].recordType == 0) { // 名称导出
-				cout << ">>函数名字:" << pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].importFuncName << endl;;
-			}
-			else { // 序号导出
-				cout << ">>函数序号:" << pe.importerTotalTable.importerTableArr[i].pImporterMemberArr[j].importFuncIndex << endl;
-			}
+	PeParser pe((char*)"C:\\Users\\97905\\Desktop\\AsmHighlight.dll");
+
+	// 显示重定位表
+	cout << "一共有重定位块：" << pe.relocationTable.numberOfRelocationBlocks << "个" << endl;
+	for (int i = 0; i < pe.relocationTable.numberOfRelocationBlocks; i++) {
+		cout << "**该块中有重定位项:" << pe.relocationTable.pRelocationBlockArr[i].numberOfItems << "个" << endl;
+		for (int j = 0; j < pe.relocationTable.pRelocationBlockArr[i].numberOfItems; j++) {
+			printf("<<%x\n", pe.relocationTable.pRelocationBlockArr[i].pItemsArr[j]);
 		}
 	}
-	
 	return 0;
 
 }

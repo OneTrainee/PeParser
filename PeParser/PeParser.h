@@ -1,6 +1,24 @@
 #pragma once
 #include <Windows.h>
 
+typedef struct _RELOCATION_BLOCK {
+/*
+@名称：重定位块
+@注释: 其是直接存储，并没有预先判断。
+*/
+	DWORD numberOfItems; // 重定位项的个数
+	PWORD pItemsArr; // 重定位项数组（以字为单位）
+}RELOCATION_BLOCK,*PRELOCATION_BLOCK;
+
+typedef struct _RELOCATION_TABLE {
+/*
+@名称：重定位表
+@注释：
+*/
+	DWORD numberOfRelocationBlocks; // 重定位块的个数
+	PRELOCATION_BLOCK pRelocationBlockArr; // 重定位块数组
+}RELOCATION_TABLE,*PRELOCATION_TABLE;
+
 typedef struct _IMPORTER_MEMBER
 {
 /*
@@ -31,7 +49,6 @@ typedef struct _IMPORTER_TOTAL_TABLE
 	PIMPORTER_TABLE importerTableArr; // 导入表数组,大小[0,numberOfImporterTable)
 	DWORD numberOfImporterTable; // 导入表的数量
 }IMPORTER_TOTAL_TABLE,*PIMPORTER_TOTAL_TABLE;
-
 
 typedef struct _EXPOTER_MEMBER {
 /*
@@ -67,6 +84,7 @@ public:
 	// 表操作
 	BOOL initExportTable(); // 初始化导出表
 	BOOL initImportTable(); // 初始化导入表
+	BOOL initRelocationTable(); // 初始化重定位表
 
 	// “节”的操作
 	BOOL ExtendLastSection(DWORD extendedByteLength); // 扩大最后一个节
@@ -88,6 +106,7 @@ public:
 	PIMAGE_SECTION_HEADER pSectionHeaders[20]; // PE节区头(最大为20个）
 	PEXPOTER_MEMBER pExpoterMemberArr; // 导出表成员数组
 	IMPORTER_TOTAL_TABLE importerTotalTable; // 导入总表(这个肯定存在，因此不需要用指针)
+	RELOCATION_TABLE relocationTable; // 重定位表
 	DWORD lengthOfExpoterMemberArr; // 导出表成员数组的长度
 	BOOL alignSign; // 若文件偏移与内存偏移相等则为True
 	int errorCode; // 错误码

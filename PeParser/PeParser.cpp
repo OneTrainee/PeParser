@@ -103,12 +103,13 @@ PeParser::PeParser(const char* filePath) {
 
 	/******************************************
 	*
-	*           初始化导出表、导入表
+	*           初始化导出表、导入表、重定位表
 	*
 	*******************************************/
 
 	this->initExportTable();
 	this->initImportTable();
+	this->initRelocationTable();
 }
 
 DWORD PeParser::RvaToFoa(DWORD rvaValue) {
@@ -300,7 +301,7 @@ DWORD PeParser::AilgnByMemory(DWORD originalValue) {
 
 	return reminder * this->pOptionalHeader->SectionAlignment;
 }
-
+	
 BOOL PeParser::ExtendLastSection(DWORD extendedByteLength) {
 /*
 @函数作用：
@@ -489,7 +490,7 @@ BOOL PeParser::initImportTable() {
 	
 	// #1 先判断导入表个数
 	if (this->pOptionalHeader->DataDirectory[1].VirtualAddress == 0) { // 判断是否存在导入表
-		this->lengthOfExpoterMemberArr = 0;
+		this->importerTotalTable.numberOfImporterTable = 0;
 		return TRUE;
 	}
 	char* tempMemory = (char*)malloc(sizeof(IMAGE_IMPORT_DESCRIPTOR)); // 申请中间内存，之后释放出来
@@ -549,4 +550,46 @@ BOOL PeParser::initImportTable() {
 	}
 	return TRUE;
 
+}
+
+BOOL PeParser::initRelocationTable() {
+/*
+@函数作用：初始化重定位表
+@注释：
+	** 重定位表作用 **
+	#1 查找重定位表地址
+	#2 扫描确定重定位块个数
+	#3 申请对应内存块数据结构内存
+	#4 对每个重定位块重新扫描，计算项目个数，内存指针取值
+	*******************
+*/
+	// #1 查找重定位表地址
+	if (this->pOptionalHeader->DataDirectory[5].VirtualAddress == 0) { // 判断是否存在重定位表
+		this->relocationTable.numberOfRelocationBlocks = 0;
+		return TRUE;
+	}
+	char* p = this->fileBuffer + this->RvaToFoa(this->pOptionalHeader->DataDirectory[5].VirtualAddress); // 获取重定位表地址
+
+	// #2 扫描确定重定位块个数
+	this->relocationTable.numberOfRelocationBlocks = 0;
+	while (*(PDWORD32)p != 0) { // 判断是否为八个零
+		this->relocationTable.numberOfRelocationBlocks++;
+		p += *(PDWORD32)(p + 4); // 指向下一个重定位块
+	}
+	
+	// #3 申请对应内存块数据结构内存
+	this->relocationTable.pRelocationBlockArr = (PRELOCATION_BLOCK)malloc(sizeof(RELOCATION_BLOCK) * this->relocationTable.numberOfRelocationBlocks);
+	if (this->relocationTable.pRelocationBlockArr != NULL) {
+		errorCode = 2;
+		return FALSE;
+	}
+
+	// #4 对每个重定位块重新扫描
+	p = this->fileBuffer + this->RvaToFoa(this->pOptionalHeader->DataDirectory[5].VirtualAddress); // 获取重定位表地址
+	for (int i = 0; i < this->relocationTable.numberOfRelocationBlocks; i++) {
+		this->relocationTable.pRelocationBlockArr[i].numberOfItems = (*(PDWORD32)(p + 4) - 8) / 2; // 计算项数个数
+		this->relocationTable.pRelocationBlockArr[i].pItemsArr = (PWORD)(p + 8); // 内存实现赋值
+		p += *(PDWORD32)(p + 4); // 指向下一个重定位块
+	}
+	return TRUE;
 }
